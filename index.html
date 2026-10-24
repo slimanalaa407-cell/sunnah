@@ -113,6 +113,9 @@ footer{text-align:center;color:var(--mute);font-size:.8rem;padding-bottom:16px}
 <h2>حسابي</h2>
 <p>بدأتي الرحلة يوم: <b id="startDate"></b></p>
 <button class="reset" id="reset">ابدأ من الأول</button>
+<h2 style="margin-top:18px">الإشعار اليومي</h2>
+<p id="nmsg" style="color:var(--mute);font-size:.9rem">اضغطي الزرار علشان توصلك سنة اليوم كل صباح.</p>
+<button class="listen" id="nbtn" style="margin:0">🔔 فعّلي الإشعار</button>
 </div>
 </section>
 </main>
@@ -307,7 +310,8 @@ try{var r=localStorage.getItem(K);if(r){var o=JSON.parse(r);for(var k in o)st[k]
 function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
 function mid(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()}
 if(!st.start){st.start=mid(new Date());save()}
-var today=Math.max(0,Math.round((mid(new Date())-st.start)/DAY));
+var START=new Date(2026,9,24).getTime();
+var today=Math.max(0,Math.round((mid(new Date())-START)/DAY));
 function $(i){return document.getElementById(i)}
 function item(d){return S[d%N]}
 function speak(t,cb){try{if(!window.speechSynthesis){alert("المتصفح ده مش بيدعم الصوت");return}speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t.replace(/[«»]/g,""));u.lang="ar-SA";u.rate=.85;if(cb)u.onend=cb;speechSynthesis.speak(u)}catch(e){}}
@@ -362,6 +366,32 @@ for(var i=0;i<tabs.length;i++)tabs[i].onclick=function(){
  fn[v]();
 };
 home();
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+ var cfg={apiKey:"AIzaSyCh-kdQmnpGckoYkKKHSD27ZFmcVhYjuXs",authDomain:"sunnah-daily-5c841.firebaseapp.com",projectId:"sunnah-daily-5c841",storageBucket:"sunnah-daily-5c841.firebasestorage.app",messagingSenderId:"1049259702323",appId:"1:1049259702323:web:1a543bb005453def2d4b46"};
+ var VAPID="BNf8ttbPxyoTycfnkO6nQCTfBxIsSLSZtbpJvW0eXTAVpZDP0LC4bN7_ShDZS6vjHbHL2lf5wjkQoqDolJGVYdo";
+ var btn=document.getElementById("nbtn"),msg=document.getElementById("nmsg");
+ function say(t){msg.textContent=t}
+ try{if(localStorage.getItem("sunnah_notif")==="1")say("الإشعار شغال ✅")}catch(e){}
+ btn.onclick=async function(){
+  try{
+   if(!("Notification" in window)||!("serviceWorker" in navigator)||!window.firebase){say("المتصفح ده مش بيدعم الإشعارات.");return}
+   var p=await Notification.requestPermission();
+   if(p!=="granted"){say("لازم توافقي على الإشعارات علشان تشتغل.");return}
+   if(!firebase.apps.length)firebase.initializeApp(cfg);
+   var reg=await navigator.serviceWorker.ready;
+   var t=await firebase.messaging().getToken({vapidKey:VAPID,serviceWorkerRegistration:reg});
+   if(!t){say("حصلت مشكلة، جربي تاني.");return}
+   await firebase.firestore().collection("tokens").doc(t).set({t:Date.now()});
+   try{localStorage.setItem("sunnah_notif","1")}catch(e){}
+   say("تم ✅ هتوصلك سنة اليوم كل صباح.");
+  }catch(e){say("حصلت مشكلة: "+(e&&e.message?e.message:e))}
+ };
+})();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </body>
